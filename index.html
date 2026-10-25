@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apuração Presidente 2026</title>
+<meta name="description" content="Painel ao vivo do 2º turno presidencial de 2026: apuração oficial do TSE, projeção por estado, pesquisas e agregadores.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Code+Pro:wght@500&display=swap">
+<style>
+/* Layout: scoreboard first (two candidates, one bar), then live detail (progress, projection, states), then the pre-election record (polls). */
+:root {
+  --bg: #f4f4f1;
+  --surface: #fcfcfb;
+  --surface-2: #efeeea;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --rule: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --lula: #e34948;
+  --flavio: #2a78d6;
+  --lula-wash: rgba(227,73,72,0.12);
+  --flavio-wash: rgba(42,120,214,0.12);
+  --live: #0ca30c;
+  --warn: #c98500;
+  --font-ui: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-num: "Source Code Pro", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0d0d; --surface: #1a1a19; --surface-2: #232321; --ink: #f0efec; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --rule: #383835; --border: rgba(255,255,255,0.10);
+    --lula: #e66767; --flavio: #3987e5; --lula-wash: rgba(230,103,103,0.16); --flavio-wash: rgba(57,135,229,0.16);
+    --live: #2fc02f; --warn: #fab219; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d0d0d; --surface: #1a1a19; --surface-2: #232321; --ink: #f0efec; --ink-2: #c3c2b7;
+  --muted: #898781; --grid: #2c2c2a; --rule: #383835; --border: rgba(255,255,255,0.10);
+  --lula: #e66767; --flavio: #3987e5; --lula-wash: rgba(230,103,103,0.16); --flavio-wash: rgba(57,135,229,0.16);
+  --live: #2fc02f; --warn: #fab219; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; line-height: 1.15; }
+h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; }
+a { color: inherit; }
+.eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Header */
+header.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; padding-block: 22px 4px; border-bottom: 1px solid var(--rule); }
+.status { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 0.86rem; color: var(--ink-2); }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-weight: 600; font-size: 0.78rem; letter-spacing: 0.04em; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--live); box-shadow: 0 0 0 0 rgba(12,163,12,.5); animation: pulse 1.8s infinite; }
+.chip.stale .dot { background: var(--warn); animation: none; }
+.chip.final .dot { background: var(--ink-2); animation: none; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(12,163,12,.45); } 70% { box-shadow: 0 0 0 7px rgba(12,163,12,0); } 100% { box-shadow: 0 0 0 0 rgba(12,163,12,0); } }
+@media (prefers-reduced-motion: reduce) { .chip .dot { animation: none; } }
+.status button { font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--ink-2); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.status button:hover { background: var(--surface-2); }
+.status button:focus-visible, .seg button:focus-visible, th button:focus-visible { outline: 2px solid var(--flavio); outline-offset: 2px; }
+
+/* Scoreboard */
+.board { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px 20px; display: grid; gap: 18px; }
+.cands { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.cand { display: grid; gap: 4px; min-width: 0; }
+.cand.right { text-align: right; }
+.cand .name { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.cand.right .name { justify-content: flex-end; }
+.cand .party { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+.cand .pct { font-size: clamp(2.6rem, 7vw, 4.2rem); font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
+.cand .pct small { font-size: 0.4em; font-weight: 600; color: var(--ink-2); margin-left: 2px; }
+.cand .votes { color: var(--ink-2); font-size: 0.95rem; }
+.swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }
+.swatch.f { background: var(--flavio); } .swatch.l { background: var(--lula); }
+.badge { font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: var(--ink); color: var(--surface); }
+.bar { position: relative; height: 26px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.bar .seg-f, .bar .seg-l { position: absolute; top: 0; bottom: 0; }
+.bar .seg-f { left: 0; background: var(--flavio); border-radius: 6px 0 0 6px; }
+.bar .seg-l { right: 0; background: var(--lula); border-radius: 0 6px 6px 0; }
+.bar .mid { position: absolute; top: -4px; bottom: -4px; left: 50%; width: 2px; background: var(--ink); transform: translateX(-1px); }
+.bar .gap { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--surface); transform: translateX(-1px); }
+.bar-foot { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--ink-2); }
+.lead { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; font-size: 0.95rem; color: var(--ink-2); border-top: 1px solid var(--grid); padding-top: 12px; }
+.lead strong { color: var(--ink); font-weight: 700; }
+
+/* Tiles */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; min-width: 0; }
+.tile .label { font-size: 0.78rem; color: var(--ink-2); }
+.tile .value { font-size: 1.45rem; font-weight: 700; line-height: 1.1; }
+.tile .sub { font-size: 0.78rem; color: var(--muted); }
+.meter { height: 6px; border-radius: 3px; background: var(--grid); margin-top: 6px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--ink-2); border-radius: 3px; }
+
+/* Panels */
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: grid; gap: 14px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; justify-content: space-between; }
+.panel-head p { color: var(--ink-2); font-size: 0.86rem; max-width: 62ch; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
+
+/* Projection */
+.proj { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; align-items: start; }
+@media (max-width: 640px) { .proj { grid-template-columns: 1fr; } }
+.proj .big { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.proj .big .v { font-size: 2rem; font-weight: 700; line-height: 1; }
+.proj .big .v small { font-size: 0.45em; color: var(--ink-2); font-weight: 600; }
+.proj .row { display: flex; justify-content: space-between; gap: 12px; font-size: 0.9rem; color: var(--ink-2); padding: 6px 0; border-top: 1px solid var(--grid); }
+.proj .row b { color: var(--ink); font-weight: 600; }
+.note { font-size: 0.8rem; color: var(--muted); max-width: 70ch; }
+.callout { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; font-size: 0.9rem; }
+.callout b { font-weight: 700; }
+
+/* Tables */
+.tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th, td { padding: 7px 8px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
+th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+th button { all: unset; cursor: pointer; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; }
+th button:hover { color: var(--ink); }
+th.sorted button { color: var(--ink); }
+th.sorted button::after { content: " ▾"; }
+td:first-child, th:first-child { text-align: left; }
+td.l, th.l { text-align: left; }
+td .mini { display: inline-block; width: 92px; height: 8px; background: var(--surface-2); border-radius: 2px; position: relative; vertical-align: middle; overflow: hidden; }
+td .mini i { position: absolute; top: 0; bottom: 0; }
+td .mini .f { left: 0; background: var(--flavio); }
+td .mini .lu { right: 0; background: var(--lula); }
+td .mini .g { width: 2px; background: var(--surface); transform: translateX(-1px); }
+.pos { color: var(--ink-2); }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 1px 8px; border-radius: 999px; font-weight: 600; font-size: 0.8rem; }
+.pill.f { background: var(--flavio-wash); } .pill.l { background: var(--lula-wash); } .pill.n { background: var(--surface-2); color: var(--ink-2); }
+tr.tot td { font-weight: 700; border-top: 2px solid var(--rule); }
+.scroll-y { max-height: 460px; overflow-y: auto; }
+
+/* Charts */
+.chart { position: relative; width: 100%; min-width: 0; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font-family: var(--font-ui); fill: var(--ink-2); font-size: 11px; }
+.chart .grid line { stroke: var(--grid); stroke-width: 1; }
+.chart .axis line { stroke: var(--rule); stroke-width: 1; }
+.chart .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .ln.f { stroke: var(--flavio); } .chart .ln.l { stroke: var(--lula); }
+.chart .dot { stroke: var(--surface); stroke-width: 2; }
+.chart .dot.f { fill: var(--flavio); } .chart .dot.l { fill: var(--lula); }
+.chart .pt.f { fill: var(--flavio); } .chart .pt.l { fill: var(--lula); }
+.chart .pt { opacity: 0.5; }
+.chart .ref line { stroke: var(--ink-2); stroke-width: 1; }
+.chart .ref text { fill: var(--muted); }
+.chart .lbl { font-weight: 700; fill: var(--ink); font-size: 12px; }
+.chart .crosshair { stroke: var(--rule); stroke-width: 1; pointer-events: none; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--surface); font-size: 0.78rem; padding: 6px 9px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); opacity: 0; transition: opacity .12s; z-index: 2; line-height: 1.35; }
+.tip.on { opacity: 1; }
+.tip b { font-weight: 700; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.82rem; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.legend i.f { background: var(--flavio); } .legend i.l { background: var(--lula); }
+.legend i.dotkey { width: 8px; height: 8px; border-radius: 50%; opacity: .6; }
+.empty { color: var(--muted); font-size: 0.88rem; padding: 18px 0; text-align: center; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.seg button { all: unset; cursor: pointer; font: inherit; font-size: 0.78rem; font-weight: 600; padding: 4px 10px; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+
+footer { font-size: 0.8rem; color: var(--muted); display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid var(--rule); }
+footer a { color: var(--ink-2); }
+.sr { position: absolute; left: -9999px; }
+@media (max-width: 560px) {
+  .cand .name { font-size: 0.95rem; }
+  .cand .votes { font-size: 0.82rem; }
+  .board { padding: 16px; }
+  .panel { padding: 14px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <div class="eyebrow">Eleições 2026 · Presidente da República · 2º turno · 25 de outubro</div>
+    <h1>Apuração ao vivo: Flávio Bolsonaro × Lula</h1>
+  </div>
+  <div class="status">
+    <span class="chip" id="chip"><span class="dot"></span><span id="chip-text">Conectando ao TSE…</span></span>
+    <span id="tse-time">—</span>
+    <span id="countdown">—</span>
+    <button type="button" id="refresh-btn">Atualizar agora</button>
+  </div>
+</header>
+
+<section class="board" aria-labelledby="board-h">
+  <h2 id="board-h" class="sr">Placar nacional</h2>
+  <div class="cands">
+    <div class="cand">
+      <div class="name"><span class="swatch f"></span>Flávio Bolsonaro <span class="badge" id="badge-f" hidden>Eleito</span></div>
+      <div class="party">PL · nº 22 · vice Alfredo Gaspar</div>
+      <div class="pct num" id="pct-f">—</div>
+      <div class="votes num" id="votes-f">—</div>
+    </div>
+    <div class="cand right">
+      <div class="name"><span class="badge" id="badge-l" hidden>Eleito</span>Lula <span class="swatch l"></span></div>
+      <div class="party">PT · nº 13 · vice Geraldo Alckmin</div>
+      <div class="pct num" id="pct-l">—</div>
+      <div class="votes num" id="votes-l">—</div>
+    </div>
+  </div>
+  <div>
+    <div class="bar" role="img" aria-label="Barra de votos válidos entre os dois candidatos">
+      <div class="seg-f" id="seg-f" style="width:50%"></div>
+      <div class="gap" id="seg-gap" style="left:50%"></div>
+      <div class="seg-l" id="seg-l" style="width:50%"></div>
+      <div class="mid" title="50%"></div>
+    </div>
+    <div class="bar-foot"><span>Votos válidos · a linha marca 50%</span><span class="num" id="pst-txt">0% das seções apuradas</span></div>
+  </div>
+  <div class="lead" id="lead-line">Aguardando a primeira leitura do TSE.</div>
+</section>
+
+<section class="tiles" aria-label="Andamento da apuração">
+  <div class="tile"><div class="label">Seções totalizadas</div><div class="value num" id="t-pst">—</div><div class="sub num" id="t-pst-sub">—</div><div class="meter"><i id="t-pst-bar" style="width:0%"></i></div></div>
+  <div class="tile"><div class="label">Eleitorado apurado</div><div class="value num" id="t-pest">—</div><div class="sub num" id="t-pest-sub">—</div><div class="meter"><i id="t-pest-bar" style="width:0%"></i></div></div>
+  <div class="tile"><div class="label">Comparecimento</div><div class="value num" id="t-pc">—</div><div class="sub num" id="t-pc-sub">—</div></div>
+  <div class="tile"><div class="label">Abstenção</div><div class="value num" id="t-pa">—</div><div class="sub num" id="t-pa-sub">—</div></div>
+  <div class="tile"><div class="label">Brancos</div><div class="value num" id="t-pvb">—</div><div class="sub num" id="t-pvb-sub">—</div></div>
+  <div class="tile"><div class="label">Nulos</div><div class="value num" id="t-ptvn">—</div><div class="sub num" id="t-ptvn-sub">—</div></div>
+</section>
+
+<div class="two">
+  <section class="panel" aria-labelledby="proj-h">
+    <div class="panel-head">
+      <h2 id="proj-h">Projeção ao vivo</h2>
+      <p>Estimativa, não resultado. Cada estado é extrapolado pela sua própria proporção de seções apuradas; estados sem urna apurada entram com o 1º turno.</p>
+    </div>
+    <div class="proj">
+      <div>
+        <div class="big"><span><span class="swatch f"></span> Flávio</span><span class="v num" id="pj-f">—</span></div>
+        <div class="big"><span><span class="swatch l"></span> Lula</span><span class="v num" id="pj-l">—</span></div>
+        <div class="row"><span>Faixa da estimativa (por UF × nacional simples)</span><b class="num" id="pj-range">—</b></div>
+        <div class="row"><span>Votos válidos projetados</span><b class="num" id="pj-vv">—</b></div>
+        <div class="row"><span>Votos válidos ainda por apurar (estimativa)</span><b class="num" id="pj-rest">—</b></div>
+      </div>
+      <div style="display:grid;gap:10px">
+        <div class="callout" id="pj-call">Aguardando dados.</div>
+        <div class="callout" id="pj-vs">—</div>
+        <p class="note">O 1º turno (4 de outubro) teve Flávio Bolsonaro com 47,03% e Lula com 45,16% dos válidos. Entre os dois, isso equivale a 51,0% × 49,0%.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="evo-h">
+    <div class="panel-head">
+      <h2 id="evo-h">Evolução da apuração</h2>
+      <p>Percentual de votos válidos a cada leitura, conforme as seções são totalizadas. O TSE publica só a foto do momento; a série é montada neste navegador enquanto a página fica aberta.</p>
+    </div>
+    <div class="legend"><span><i class="f"></i>Flávio Bolsonaro</span><span><i class="l"></i>Lula</span></div>
+    <div class="chart" id="evo-chart"><div class="empty">A curva aparece a partir da segunda leitura.</div></div>
+  </section>
+</div>
+
+<section class="panel" aria-labelledby="uf-h">
+  <div class="panel-head">
+    <h2 id="uf-h">Por estado</h2>
+    <p>Votos válidos de cada candidato na UF e a variação de Flávio Bolsonaro em relação ao 1º turno (na disputa entre os dois).</p>
+    <div class="seg" role="group" aria-label="Ordenar estados">
+      <button type="button" data-sort="te" aria-pressed="true">Eleitorado</button>
+      <button type="button" data-sort="pst" aria-pressed="false">Apuradas</button>
+      <button type="button" data-sort="pf" aria-pressed="false">Flávio %</button>
+      <button type="button" data-sort="pl" aria-pressed="false">Lula %</button>
+      <button type="button" data-sort="uf" aria-pressed="false">A–Z</button>
+    </div>
+  </div>
+  <div class="tbl-wrap scroll-y">
+    <table id="uf-table">
+      <thead><tr><th class="l">UF</th><th class="l">Região</th><th>Apuradas</th><th class="l">Válidos</th><th>Flávio</th><th>Lula</th><th>Votos válidos</th><th>Flávio vs 1º t.</th></tr></thead>
+      <tbody id="uf-body"><tr><td colspan="8" class="empty">Carregando os 27 estados e o exterior…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" aria-labelledby="polls-h">
+  <div class="panel-head">
+    <h2 id="polls-h">Pesquisas do 2º turno em 2026</h2>
+    <p>Cada ponto é uma pesquisa (votos válidos entre os dois). As linhas são a média móvel de 14 dias. As linhas verticais marcam o 1º turno e o resultado parcial de hoje.</p>
+  </div>
+  <div class="legend"><span><i class="f"></i>Flávio Bolsonaro</span><span><i class="l"></i>Lula</span><span><i class="dotkey" style="background:var(--muted)"></i>Pesquisa individual</span></div>
+  <div class="chart" id="polls-chart"></div>
+</section>
+
+<div class="two">
+  <section class="panel" aria-labelledby="agg-h">
+    <div class="panel-head">
+      <h2 id="agg-h">Agregadores e projeções pré-eleição</h2>
+      <p>Médias publicadas por agregadores de pesquisas, na última atualização antes da votação.</p>
+    </div>
+    <div class="tbl-wrap">
+      <table id="agg-table">
+        <thead><tr><th class="l">Agregador</th><th class="l">Atualizado</th><th>Lula</th><th>Flávio</th><th>Indef.</th><th>Vantagem</th></tr></thead>
+        <tbody id="agg-body"></tbody>
+      </table>
+    </div>
+    <div class="callout" id="agg-vs">—</div>
+  </section>
+
+  <section class="panel" aria-labelledby="last-h">
+    <div class="panel-head">
+      <h2 id="last-h">Última semana de pesquisas</h2>
+      <p>Levantamentos com coleta encerrada a partir de 18 de outubro, do mais recente ao mais antigo. Percentuais do total de entrevistados; a vantagem segue a cor de quem lidera.</p>
+    </div>
+    <div class="tbl-wrap scroll-y">
+      <table id="last-table">
+        <thead><tr><th class="l">Instituto</th><th class="l">Campo</th><th>Amostra</th><th>Margem</th><th>Lula</th><th>Flávio</th><th>Indef.</th><th>Vantagem</th></tr></thead>
+        <tbody id="last-body"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<section class="panel" aria-labelledby="r1-h">
+  <div class="panel-head">
+    <h2 id="r1-h">Resultado do 1º turno · 4 de outubro</h2>
+    <p>Votos válidos, totalização oficial do TSE (eleição 6257).</p>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th class="l">Candidato</th><th class="l">Partido</th><th>Votos</th><th>% válidos</th><th class="l">Situação</th></tr></thead>
+      <tbody>
+        <tr><td><span class="swatch f"></span> Flávio Bolsonaro</td><td class="l">PL</td><td class="num">56.104.503</td><td class="num">47,03%</td><td class="l">2º turno</td></tr>
+        <tr><td><span class="swatch l"></span> Lula</td><td class="l">PT</td><td class="num">53.879.538</td><td class="num">45,16%</td><td class="l">2º turno</td></tr>
+        <tr><td>Augusto Cury</td><td class="l">Avante</td><td class="num">—</td><td class="num">2,89%</td><td class="l">Não eleito</td></tr>
+        <tr><td>Renan Santos</td><td class="l">Missão</td><td class="num">—</td><td class="num">2,24%</td><td class="l">Não eleito</td></tr>
+        <tr><td>Ronaldo Caiado</td><td class="l">PSD</td><td class="num">2.605.148</td><td class="num">2,18%</td><td class="l">Não eleito</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <div><b>Fontes.</b> Apuração: arquivos oficiais de divulgação do TSE (<a href="https://resultados.tse.jus.br/oficial/ele2026/6258/dados/br/br-c0001-e006258-u.json" target="_blank" rel="noopener">resultados.tse.jus.br</a>, eleição 6258), lidos a cada 60 segundos, horário de Brasília carimbado pelo próprio TSE. Pesquisas e agregadores: tabela de <a href="https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2026" target="_blank" rel="noopener">pesquisas de opinião para a eleição presidencial de 2026</a> (Wikipédia), com cada linha remetendo ao registro no TSE; capturada em 25/10/2026.</div>
+  <div><b>Projeção.</b> Para cada UF, os votos de cada candidato são multiplicados por (seções totais ÷ seções totalizadas) da própria UF; UFs sem seção totalizada entram com o resultado do 1º turno. A faixa compara essa conta com a extrapolação nacional simples. É uma estimativa deste painel, não do TSE nem de instituto de pesquisa.</div>
+  <div id="foot-status">—</div>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const ELE = '6258';
+  const BASE = 'https://resultados.tse.jus.br/oficial/ele2026/' + ELE + '/dados/';
+  const UFS = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO','ZZ'];
+  const UF_NAME = {AC:'Acre',AL:'Alagoas',AM:'Amazonas',AP:'Amapá',BA:'Bahia',CE:'Ceará',DF:'Distrito Federal',ES:'Espírito Santo',GO:'Goiás',MA:'Maranhão',MG:'Minas Gerais',MS:'Mato Grosso do Sul',MT:'Mato Grosso',PA:'Pará',PB:'Paraíba',PE:'Pernambuco',PI:'Piauí',PR:'Paraná',RJ:'Rio de Janeiro',RN:'Rio Grande do Norte',RO:'Rondônia',RR:'Roraima',RS:'Rio Grande do Sul',SC:'Santa Catarina',SE:'Sergipe',SP:'São Paulo',TO:'Tocantins',ZZ:'Exterior'};
+  const REGION = {AC:'Norte',AM:'Norte',AP:'Norte',PA:'Norte',RO:'Norte',RR:'Norte',TO:'Norte',AL:'Nordeste',BA:'Nordeste',CE:'Nordeste',MA:'Nordeste',PB:'Nordeste',PE:'Nordeste',PI:'Nordeste',RN:'Nordeste',SE:'Nordeste',DF:'Centro-Oeste',GO:'Centro-Oeste',MS:'Centro-Oeste',MT:'Centro-Oeste',ES:'Sudeste',MG:'Sudeste',RJ:'Sudeste',SP:'Sudeste',PR:'Sul',RS:'Sul',SC:'Sul',ZZ:'Exterior'};
+  const REFRESH_MS = 60000;
+  const HIST_KEY = 'apuracao2026-6258-hist';
+
+  const fmtInt = new Intl.NumberFormat('pt-BR');
+  const fmtPct = (v, d) => (v == null || isNaN(v)) ? '—' : v.toLocaleString('pt-BR', { minimumFractionDigits: d == null ? 2 : d, maximumFractionDigits: d == null ? 2 : d }) + '%';
+  const fmtPP = (v, d) => (v == null || isNaN(v)) ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: d == null ? 1 : d, maximumFractionDigits: d == null ? 1 : d }) + ' p.p.';
+  const $ = (id) => document.getElementById(id);
+  const n = (s) => (s == null || s === '') ? 0 : Number(String(s).replace(',', '.'));
+
+  const state = { br: null, ufs: {}, uf1t: null, polls: null, hist: [], lastOk: null, lastErr: null, nextAt: 0, sort: 'te', timer: null, tick: null };
+
+  try { state.hist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); if (!Array.isArray(state.hist)) state.hist = []; } catch (e) { state.hist = []; }
+
+  function parse(d) {
+    const out = { dg: d.dg, hg: d.hg, idg: d.idg, ts: n(d.s && d.s.ts), st: n(d.s && d.s.st), pst: n(d.s && d.s.pstn),
+      te: n(d.e && d.e.te), est: n(d.e && d.e.est), pest: n(d.e && d.e.pestn), c: n(d.e && d.e.c), pc: n(d.e && d.e.pcn), a: n(d.e && d.e.a), pa: n(d.e && d.e.pan),
+      vv: n(d.v && d.v.vv), vb: n(d.v && d.v.vb), pvb: n(d.v && d.v.pvbn), tvn: n(d.v && d.v.tvn), ptvn: n(d.v && d.v.ptvnn), f: 0, l: 0, pf: 0, pl: 0, ef: false, el: false };
+    const carg = d.carg && d.carg[0];
+    if (carg) for (const agr of carg.agr || []) for (const par of agr.par || []) for (const c of par.cand || []) {
+      if (c.n === '22') { out.f = n(c.vap); out.pf = n(c.pvapn); out.ef = c.e === 's'; }
+      if (c.n === '13') { out.l = n(c.vap); out.pl = n(c.pvapn); out.el = c.e === 's'; }
+    }
+    if (out.f + out.l > 0 && !out.pf) { out.pf = 100 * out.f / (out.f + out.l); out.pl = 100 - out.pf; }
+    return out;
+  }
+
+  async function getJSON(url) {
+    const r = await fetch(url, { cache: 'no-cache' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+
+  async function refresh() {
+    clearTimeout(state.timer);
+    setChip('loading');
+    const brP = getJSON(BASE + 'br/br-c0001-e00' + ELE + '-u.json');
+    const ufP = UFS.map(uf => getJSON(BASE + uf.toLowerCase() + '/' + uf.toLowerCase() + '-c0001-e00' + ELE + '-u.json').then(d => [uf, parse(d)]).catch(() => null));
+    try {
+      const br = parse(await brP);
+      state.br = br; state.lastOk = Date.now(); state.lastErr = null;
+      pushHist(br);
+    } catch (e) { state.lastErr = e; }
+    const ufRes = await Promise.all(ufP);
+    for (const r of ufRes) if (r) state.ufs[r[0]] = r[1];
+    render();
+    state.nextAt = Date.now() + REFRESH_MS;
+    state.timer = setTimeout(refresh, REFRESH_MS);
+  }
+
+  function pushHist(br) {
+    if (!br.f && !br.l) return;
+    const last = state.hist[state.hist.length - 1];
+    if (last && last.idg === br.idg) return;
+    state.hist.push({ t: Date.now(), idg: br.idg, hg: br.hg, pst: br.pst, pf: br.pf, pl: br.pl, f: br.f, l: br.l });
+    if (state.hist.length > 2000) state.hist = state.hist.slice(-2000);
+    try { localStorage.setItem(HIST_KEY, JSON.stringify(state.hist)); } catch (e) {}
+  }
+
+  function setChip(mode) {
+    const chip = $('chip'), txt = $('chip-text');
+    chip.classList.remove('stale', 'final');
+    if (mode === 'loading') { txt.textContent = state.br ? 'Ao vivo · atualizando…' : 'Conectando ao TSE…'; return; }
+    if (state.lastErr && !state.br) { chip.classList.add('stale'); txt.textContent = 'Sem resposta do TSE'; return; }
+    if (state.lastErr) { chip.classList.add('stale'); txt.textContent = 'TSE indisponível · mantendo última leitura'; return; }
+    if (state.br && state.br.pst >= 100) { chip.classList.add('final'); txt.textContent = 'Totalização 100%'; return; }
+    txt.textContent = 'Ao vivo';
+  }
+
+  function tick() {
+    const left = Math.max(0, Math.round((state.nextAt - Date.now()) / 1000));
+    $('countdown').textContent = state.nextAt ? 'próxima leitura em ' + left + 's' : '';
+  }
+
+  function render() {
+    const br = state.br;
+    setChip();
+    if (!br) { $('lead-line').textContent = 'Não foi possível ler o TSE. Nova tentativa em 60 segundos.'; $('foot-status').textContent = 'Erro: ' + (state.lastErr && state.lastErr.message); return; }
+    $('tse-time').textContent = 'TSE · ' + br.dg + ' ' + br.hg + ' (Brasília)';
+    $('foot-status').textContent = 'Última leitura bem-sucedida às ' + new Date(state.lastOk).toLocaleTimeString('pt-BR') + ' · arquivo TSE id ' + br.idg + ' · ' + Object.keys(state.ufs).length + ' de ' + UFS.length + ' UFs carregadas.';
+
+    const has = br.f + br.l > 0;
+    $('pct-f').innerHTML = has ? br.pf.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '<small>%</small>' : '—';
+    $('pct-l').innerHTML = has ? br.pl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '<small>%</small>' : '—';
+    $('votes-f').textContent = has ? fmtInt.format(br.f) + ' votos' : 'aguardando urnas';
+    $('votes-l').textContent = has ? fmtInt.format(br.l) + ' votos' : 'aguardando urnas';
+    $('badge-f').hidden = !br.ef; $('badge-l').hidden = !br.el;
+    const wf = has ? br.pf : 50;
+    $('seg-f').style.width = 'calc(' + wf + '% - 1px)';
+    $('seg-l').style.width = 'calc(' + (100 - wf) + '% - 1px)';
+    $('seg-gap').style.left = wf + '%';
+    $('pst-txt').textContent = fmtPct(br.pst) + ' das seções apuradas';
+
+    if (has) {
+      const diff = br.f - br.l, lead = diff >= 0 ? 'Flávio Bolsonaro' : 'Lula';
+      $('lead-line').innerHTML = '<span><strong>' + lead + '</strong> lidera por <strong class="num">' + fmtInt.format(Math.abs(diff)) + '</strong> votos</span>' +
+        '<span>diferença de <strong class="num">' + fmtPP(Math.abs(br.pf - br.pl), 2) + '</strong></span>' +
+        '<span>válidos apurados: <strong class="num">' + fmtInt.format(br.vv) + '</strong></span>';
+    } else {
+      $('lead-line').textContent = 'Urnas ainda não totalizadas. O TSE começa a publicar após as 17h de Brasília.';
+    }
+
+    $('t-pst').textContent = fmtPct(br.pst); $('t-pst-sub').textContent = fmtInt.format(br.st) + ' de ' + fmtInt.format(br.ts); $('t-pst-bar').style.width = br.pst + '%';
+    $('t-pest').textContent = fmtPct(br.pest); $('t-pest-sub').textContent = fmtInt.format(br.est) + ' de ' + fmtInt.format(br.te) + ' eleitores'; $('t-pest-bar').style.width = br.pest + '%';
+    $('t-pc').textContent = fmtPct(br.pc); $('t-pc-sub').textContent = fmtInt.format(br.c) + ' compareceram';
+    $('t-pa').textContent = fmtPct(br.pa); $('t-pa-sub').textContent = fmtInt.format(br.a) + ' não votaram';
+    $('t-pvb').textContent = fmtPct(br.pvb); $('t-pvb-sub').textContent = fmtInt.format(br.vb) + ' votos';
+    $('t-ptvn').textContent = fmtPct(br.ptvn); $('t-ptvn-sub').textContent = fmtInt.format(br.tvn) + ' votos';
+
+    renderProjection(br);
+    renderUF();
+    renderEvo();
+    renderPollsChart();
+    renderAggVs(br);
+  }
+
+  function projection(br) {
+    if (!state.uf1t) return null;
+    let pf = 0, pl = 0, used = 0;
+    for (const uf of UFS) {
+      const u = state.ufs[uf], b = state.uf1t[uf];
+      if (u && u.st > 0 && u.f + u.l > 0) { const k = u.ts / u.st; pf += u.f * k; pl += u.l * k; used++; }
+      else if (b) { pf += b.f; pl += b.l; }
+    }
+    const naiveK = br.st > 0 ? br.ts / br.st : 0;
+    const nf = br.f * naiveK, nl = br.l * naiveK;
+    const share = (f, l) => (f + l > 0) ? 100 * f / (f + l) : NaN;
+    return { pf, pl, used, ufShareF: share(pf, pl), naiveShareF: share(nf, nl), vv: pf + pl, rest: Math.max(0, pf + pl - (br.f + br.l)) };
+  }
+
+  function renderProjection(br) {
+    const p = projection(br);
+    if (!p || br.f + br.l === 0 || br.pst <= 0) { $('pj-call').textContent = 'A projeção começa quando houver seções totalizadas.'; return; }
+    const sf = p.ufShareF, sl = 100 - sf;
+    $('pj-f').innerHTML = sf.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '<small>%</small>';
+    $('pj-l').innerHTML = sl.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '<small>%</small>';
+    const lo = Math.min(sf, p.naiveShareF), hi = Math.max(sf, p.naiveShareF);
+    $('pj-range').textContent = 'Flávio ' + fmtPct(lo, 1) + ' a ' + fmtPct(hi, 1);
+    $('pj-vv').textContent = '≈ ' + fmtInt.format(Math.round(p.vv));
+    $('pj-rest').textContent = '≈ ' + fmtInt.format(Math.round(p.rest));
+
+    const leaderF = br.f >= br.l;
+    const leadV = Math.abs(br.f - br.l), R = p.rest;
+    const trailer = leaderF ? 'Lula' : 'Flávio Bolsonaro', leader = leaderF ? 'Flávio Bolsonaro' : 'Lula';
+    let msg;
+    if (br.pst >= 100) {
+      msg = '<b>Totalização encerrada.</b> ' + leader + ' termina com ' + fmtPct(Math.max(br.pf, br.pl)) + ' dos votos válidos.';
+    } else if (R <= 0 || leadV > R) {
+      msg = '<b>Vantagem maior que os votos restantes estimados.</b> Pela estimativa deste painel, ' + trailer + ' não alcança ' + leader + ' mesmo levando todos os votos ainda não apurados.';
+    } else {
+      const need = 100 * (leadV + R) / (2 * R);
+      msg = 'Para virar, <b>' + trailer + '</b> precisaria de cerca de <b class="num">' + fmtPct(need, 1) + '</b> dos ≈ ' + fmtInt.format(Math.round(R)) + ' votos válidos ainda por apurar.';
+    }
+    $('pj-call').innerHTML = msg + ' <span class="pos">(' + p.used + ' UFs com urnas apuradas)</span>';
+
+    const d1 = 100 * 56104503 / (56104503 + 53879538);
+    $('pj-vs').innerHTML = 'Comparado ao 1º turno (Flávio ' + fmtPct(d1, 1) + ' entre os dois), a projeção atual move Flávio em <b class="num">' + fmtPP(sf - d1, 1) + '</b>.';
+  }
+
+  function renderUF() {
+    const rows = UFS.map(uf => {
+      const u = state.ufs[uf], b = state.uf1t && state.uf1t[uf];
+      const has = u && u.f + u.l > 0;
+      const pf = has ? 100 * u.f / (u.f + u.l) : NaN, pl = has ? 100 - pf : NaN;
+      const b1 = b ? 100 * b.f / (b.f + b.l) : NaN;
+      return { uf, reg: REGION[uf], te: b ? b.te : (u ? u.te : 0), pst: u ? u.pst : 0, pf, pl, vv: has ? u.f + u.l : 0, d: has ? pf - b1 : NaN, has };
+    });
+    const s = state.sort;
+    rows.sort((a, b) => s === 'uf' ? a.uf.localeCompare(b.uf) : s === 'te' ? b.te - a.te : ((isNaN(b[s]) ? -1 : b[s]) - (isNaN(a[s]) ? -1 : a[s])));
+    const html = rows.map(r => {
+      const mini = r.has ? '<span class="mini" aria-hidden="true"><i class="f" style="width:' + r.pf + '%"></i><i class="g" style="left:' + r.pf + '%"></i><i class="lu" style="width:' + r.pl + '%"></i></span>' : '<span class="pos">aguardando</span>';
+      const dcls = isNaN(r.d) ? 'n' : (r.d > 0 ? 'f' : r.d < 0 ? 'l' : 'n');
+      return '<tr><td><b>' + r.uf + '</b> <span class="pos">' + UF_NAME[r.uf] + '</span></td><td class="l pos">' + r.reg + '</td><td class="num">' + fmtPct(r.pst, 1) + '</td><td class="l">' + mini + '</td>' +
+        '<td class="num">' + fmtPct(r.pf) + '</td><td class="num">' + fmtPct(r.pl) + '</td><td class="num">' + (r.has ? fmtInt.format(r.vv) : '—') + '</td>' +
+        '<td><span class="pill ' + dcls + ' num">' + (isNaN(r.d) ? '—' : fmtPP(r.d)) + '</span></td></tr>';
+    }).join('');
+    const br = state.br;
+    const tot = br && br.f + br.l > 0 ? '<tr class="tot"><td>Brasil</td><td class="l"></td><td class="num">' + fmtPct(br.pst, 1) + '</td><td class="l"></td><td class="num">' + fmtPct(br.pf) + '</td><td class="num">' + fmtPct(br.pl) + '</td><td class="num">' + fmtInt.format(br.f + br.l) + '</td><td></td></tr>' : '';
+    $('uf-body').innerHTML = html + tot;
+  }
+
+  /* ---------- charts ---------- */
+  function svgEl(tag, attrs, text) {
+    const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function niceTicks(lo, hi, count) {
+    const span = hi - lo, raw = span / count, pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map(m => m * pow).find(s => span / s <= count) || pow * 10;
+    const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6)); return out;
+  }
+  function ensureTip(box) {
+    let t = box.querySelector('.tip'); if (!t) { t = document.createElement('div'); t.className = 'tip'; box.appendChild(t); } return t;
+  }
+
+  function renderEvo() {
+    const box = $('evo-chart');
+    const pts = state.hist.filter(h => h.pf > 0);
+    if (pts.length < 2) { box.innerHTML = '<div class="empty">' + (pts.length === 1 ? 'Primeira leitura registrada (' + fmtPct(pts[0].pst, 1) + ' das seções). A curva aparece na próxima.' : 'A curva aparece a partir da segunda leitura.') + '</div>'; return; }
+    const W = 560, H = 260, m = { t: 14, r: 56, b: 30, l: 40 };
+    const xs = pts.map(p => p.pst);
+    const xlo = Math.max(0, Math.floor(Math.min(...xs) / 10) * 10), xhi = 100;
+    let ylo = Math.min(...pts.map(p => Math.min(p.pf, p.pl))), yhi = Math.max(...pts.map(p => Math.max(p.pf, p.pl)));
+    const pad = Math.max(1, (yhi - ylo) * 0.4); ylo = Math.floor((ylo - pad) * 2) / 2; yhi = Math.ceil((yhi + pad) * 2) / 2;
+    if (ylo > 49 && yhi < 51) { ylo = Math.min(ylo, 48); yhi = Math.max(yhi, 52); }
+    const X = v => m.l + (v - xlo) / (xhi - xlo) * (W - m.l - m.r), Y = v => m.t + (yhi - v) / (yhi - ylo) * (H - m.t - m.b);
+    const svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Evolução do percentual de votos válidos por seções apuradas' });
+    const grid = svgEl('g', { class: 'grid' }), axis = svgEl('g', { class: 'axis' });
+    for (const v of niceTicks(ylo, yhi, 5)) { grid.appendChild(svgEl('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v) })); svg.appendChild(svgEl('text', { x: m.l - 6, y: Y(v) + 4, 'text-anchor': 'end' }, v.toLocaleString('pt-BR') + '%')); }
+    for (const v of niceTicks(xlo, xhi, 6)) { svg.appendChild(svgEl('text', { x: X(v), y: H - 8, 'text-anchor': 'middle' }, v + '%')); }
+    axis.appendChild(svgEl('line', { x1: m.l, x2: W - m.r, y1: Y(ylo), y2: Y(ylo) }));
+    svg.appendChild(grid); svg.appendChild(axis);
+    if (ylo < 50 && yhi > 50) { const g = svgEl('g', { class: 'ref' }); g.appendChild(svgEl('line', { x1: m.l, x2: W - m.r, y1: Y(50), y2: Y(50) })); g.appendChild(svgEl('text', { x: W - m.r + 4, y: Y(50) + 4 }, '50%')); svg.appendChild(g); }
+    svg.appendChild(svgEl('text', { x: W - m.r, y: H - 8, 'text-anchor': 'end', fill: 'var(--muted)' }, ''));
+    for (const k of ['f', 'l']) {
+      const key = k === 'f' ? 'pf' : 'pl';
+      svg.appendChild(svgEl('path', { class: 'ln ' + k, d: pts.map((p, i) => (i ? 'L' : 'M') + X(p.pst).toFixed(1) + ' ' + Y(p[key]).toFixed(1)).join(' ') }));
+      const last = pts[pts.length - 1];
+      svg.appendChild(svgEl('circle', { class: 'dot ' + k, cx: X(last.pst), cy: Y(last[key]), r: 4.5 }));
+      svg.appendChild(svgEl('text', { class: 'lbl', x: X(last.pst) + 8, y: Y(last[key]) + (k === 'f' ? (last.pf >= last.pl ? -4 : 12) : (last.pl > last.pf ? -4 : 12)) }, fmtPct(last[key])));
+    }
+    const cross = svgEl('line', { class: 'crosshair', x1: 0, x2: 0, y1: m.t, y2: H - m.b, opacity: 0 }); svg.appendChild(cross);
+    box.innerHTML = ''; box.appendChild(svg);
+    const tip = ensureTip(box);
+    svg.addEventListener('mousemove', ev => {
+      const r = svg.getBoundingClientRect(); const px = (ev.clientX - r.left) / r.width * W;
+      let best = pts[0], bd = Infinity; for (const p of pts) { const d = Math.abs(X(p.pst) - px); if (d < bd) { bd = d; best = p; } }
+      cross.setAttribute('x1', X(best.pst)); cross.setAttribute('x2', X(best.pst)); cross.setAttribute('opacity', 1);
+      tip.innerHTML = '<b>' + fmtPct(best.pst, 2) + ' das seções</b> · TSE ' + best.hg + '<br>Flávio ' + fmtPct(best.pf) + ' · Lula ' + fmtPct(best.pl);
+      tip.style.left = (X(best.pst) / W * r.width) + 'px'; tip.style.top = (Y(Math.max(best.pf, best.pl)) / H * r.height) + 'px'; tip.classList.add('on');
+    });
+    svg.addEventListener('mouseleave', () => { tip.classList.remove('on'); cross.setAttribute('opacity', 0); });
+  }
+
+  const dayMs = 86400000;
+  function renderPollsChart() {
+    const box = $('polls-chart');
+    if (!state.polls) return;
+    const polls = state.polls.pesquisas.filter(p => p.fim >= '2026-01-01');
+    const W = 1100, H = 320, m = { t: 16, r: 70, b: 32, l: 44 };
+    const t0 = Date.parse('2026-01-01T00:00:00Z'), t1 = Date.parse('2026-10-31T00:00:00Z');
+    const X = t => m.l + (t - t0) / (t1 - t0) * (W - m.l - m.r);
+    let ylo = 40, yhi = 60;
+    const Y = v => m.t + (yhi - v) / (yhi - ylo) * (H - m.t - m.b);
+    const svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Pesquisas do segundo turno em 2026, votos válidos' });
+    const grid = svgEl('g', { class: 'grid' });
+    for (const v of [40, 45, 50, 55, 60]) { grid.appendChild(svgEl('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v) })); svg.appendChild(svgEl('text', { x: m.l - 6, y: Y(v) + 4, 'text-anchor': 'end' }, v + '%')); }
+    svg.appendChild(grid);
+    const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out'];
+    months.forEach((mo, i) => { const t = Date.parse('2026-' + String(i + 1).padStart(2, '0') + '-01T00:00:00Z'); svg.appendChild(svgEl('text', { x: X(t), y: H - 10, 'text-anchor': 'start' }, mo)); });
+    const ax = svgEl('g', { class: 'axis' }); ax.appendChild(svgEl('line', { x1: m.l, x2: W - m.r, y1: Y(ylo), y2: Y(ylo) })); svg.appendChild(ax);
+    // points
+    const ptsG = svgEl('g');
+    const dotIdx = [];
+    for (const p of polls) {
+      const t = Date.parse(p.fim + 'T12:00:00Z');
+      for (const k of ['f', 'l']) {
+        const v = k === 'f' ? p.flavio_v : p.lula_v;
+        ptsG.appendChild(svgEl('circle', { class: 'pt ' + k, cx: X(t).toFixed(1), cy: Y(v).toFixed(1), r: 3.5 }));
+        dotIdx.push({ x: X(t), y: Y(v), p, k });
+      }
+    }
+    svg.appendChild(ptsG);
+    // moving average (14-day window, centered on each poll date, step 3 days)
+    for (const k of ['f', 'l']) {
+      const key = k === 'f' ? 'flavio_v' : 'lula_v'; const d = [];
+      for (let t = Date.parse('2026-01-15T12:00:00Z'); t <= Date.parse(polls[polls.length - 1].fim + 'T12:00:00Z'); t += 3 * dayMs) {
+        const w = polls.filter(p => Math.abs(Date.parse(p.fim + 'T12:00:00Z') - t) <= 7 * dayMs);
+        if (w.length >= 2) d.push([t, w.reduce((s, p) => s + p[key], 0) / w.length]);
+      }
+      svg.appendChild(svgEl('path', { class: 'ln ' + k, d: d.map((q, i) => (i ? 'L' : 'M') + X(q[0]).toFixed(1) + ' ' + Y(q[1]).toFixed(1)).join(' ') }));
+      if (d.length) { const last = d[d.length - 1]; svg.appendChild(svgEl('text', { class: 'lbl', x: X(last[0]) - 8, y: Y(last[1]) + (last[1] >= 50 ? -5 : 14), 'text-anchor': 'end', 'font-size': 11 }, 'média ' + fmtPct(last[1], 1))); }
+    }
+    // reference lines: 1st round and today
+    const ref = svgEl('g', { class: 'ref' });
+    const tR1 = Date.parse('2026-10-04T12:00:00Z');
+    ref.appendChild(svgEl('line', { x1: X(tR1), x2: X(tR1), y1: m.t, y2: H - m.b, 'stroke-dasharray': '3 3' }));
+    ref.appendChild(svgEl('text', { x: X(tR1) - 4, y: m.t + 10, 'text-anchor': 'end' }, '1º turno'));
+    const r1f = 100 * 56104503 / (56104503 + 53879538);
+    ref.appendChild(svgEl('circle', { class: 'dot f', cx: X(tR1), cy: Y(r1f), r: 5 }));
+    ref.appendChild(svgEl('circle', { class: 'dot l', cx: X(tR1), cy: Y(100 - r1f), r: 5 }));
+    const br = state.br;
+    if (br && br.f + br.l > 0) {
+      const tR2 = Date.parse('2026-10-25T12:00:00Z');
+      ref.appendChild(svgEl('line', { x1: X(tR2), x2: X(tR2), y1: m.t, y2: H - m.b, 'stroke-dasharray': '3 3' }));
+      ref.appendChild(svgEl('text', { x: X(tR2) + 6, y: m.t + 10 }, 'apuração ' + fmtPct(br.pst, 0)));
+      ref.appendChild(svgEl('circle', { class: 'dot f', cx: X(tR2), cy: Y(br.pf), r: 6 }));
+      ref.appendChild(svgEl('circle', { class: 'dot l', cx: X(tR2), cy: Y(br.pl), r: 6 }));
+      const top = br.pf >= br.pl ? 'f' : 'l';
+      ref.appendChild(svgEl('text', { class: 'lbl', x: X(tR2), y: Y(Math.max(br.pf, br.pl)) - 11, 'text-anchor': 'middle' }, (top === 'f' ? 'Flávio ' : 'Lula ') + fmtPct(Math.max(br.pf, br.pl), 1)));
+      ref.appendChild(svgEl('text', { class: 'lbl', x: X(tR2), y: Y(Math.min(br.pf, br.pl)) + 20, 'text-anchor': 'middle' }, (top === 'f' ? 'Lula ' : 'Flávio ') + fmtPct(Math.min(br.pf, br.pl), 1)));
+    }
+    svg.appendChild(ref);
+    box.innerHTML = ''; box.appendChild(svg);
+    const tip = ensureTip(box);
+    svg.addEventListener('mousemove', ev => {
+      const r = svg.getBoundingClientRect(); const px = (ev.clientX - r.left) / r.width * W, py = (ev.clientY - r.top) / r.height * H;
+      let best = null, bd = 14 * 14; for (const d of dotIdx) { const dd = (d.x - px) ** 2 + (d.y - py) ** 2; if (dd < bd) { bd = dd; best = d; } }
+      if (!best) { tip.classList.remove('on'); return; }
+      const p = best.p;
+      tip.innerHTML = '<b>' + p.instituto + '</b> · ' + p.datas + '<br>Válidos: Flávio ' + fmtPct(p.flavio_v, 1) + ' · Lula ' + fmtPct(p.lula_v, 1) + '<br>Total: F ' + fmtPct(p.flavio, 1) + ' · L ' + fmtPct(p.lula, 1) + (p.indef != null ? ' · indef. ' + fmtPct(p.indef, 1) : '') + (p.amostra ? ' · n=' + fmtInt.format(p.amostra) : '');
+      tip.style.left = (best.x / W * r.width) + 'px'; tip.style.top = (best.y / H * r.height) + 'px'; tip.classList.add('on');
+    });
+    svg.addEventListener('mouseleave', () => tip.classList.remove('on'));
+  }
+
+  function renderPollsTables() {
+    const d = state.polls; if (!d) return;
+    const lead = (lu, fl) => {
+      const c = fl > lu ? 'f' : lu > fl ? 'l' : 'n', who = fl > lu ? 'Flávio' : lu > fl ? 'Lula' : 'empate';
+      return '<span class="pill ' + c + ' num" title="' + who + '">' + (c === 'n' ? '' : '<span class="swatch ' + c + '"></span>') + fmtPP(Math.abs(fl - lu), 1).replace('+', '') + '</span>';
+    };
+    $('agg-body').innerHTML = d.agregadores.map(a => '<tr><td>' + a.nome + '</td><td class="l pos">' + a.atualizado + '</td><td class="num">' + fmtPct(a.lula, 1) + '</td><td class="num">' + fmtPct(a.flavio, 1) + '</td><td class="num pos">' + (a.indef != null ? fmtPct(a.indef, 1) : '—') + '</td><td>' + lead(a.lula, a.flavio) + '</td></tr>').join('');
+    const last = d.pesquisas.filter(p => p.fim >= '2026-10-18').slice().reverse();
+    $('last-body').innerHTML = last.map(p => '<tr><td>' + p.instituto + '</td><td class="l pos">' + p.datas + '</td><td class="num pos">' + (p.amostra ? fmtInt.format(p.amostra) : '—') + '</td><td class="num pos">' + (p.margem != null ? '±' + p.margem.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—') + '</td><td class="num">' + fmtPct(p.lula, 1) + '</td><td class="num">' + fmtPct(p.flavio, 1) + '</td><td class="num pos">' + (p.indef != null ? fmtPct(p.indef, 1) : '—') + '</td><td>' + lead(p.lula, p.flavio) + '</td></tr>').join('');
+  }
+
+  function renderAggVs(br) {
+    const d = state.polls; if (!d) return;
+    const last = d.pesquisas.filter(p => p.fim >= '2026-10-18');
+    const avgF = last.reduce((s, p) => s + p.flavio_v, 0) / last.length;
+    let txt = 'Média das <b>' + last.length + '</b> pesquisas da última semana, em votos válidos: Flávio <b class="num">' + fmtPct(avgF, 1) + '</b> × Lula <b class="num">' + fmtPct(100 - avgF, 1) + '</b>.';
+    if (br && br.f + br.l > 0) txt += ' A apuração atual (' + fmtPct(br.pst, 0) + ' das seções) dá Flávio ' + fmtPct(br.pf, 1) + ', um desvio de <b class="num">' + fmtPP(br.pf - avgF, 1) + '</b> em relação às pesquisas.';
+    $('agg-vs').innerHTML = txt;
+  }
+
+  /* ---------- boot ---------- */
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    b.setAttribute('aria-pressed', 'true'); state.sort = b.dataset.sort; renderUF();
+  }));
+  $('refresh-btn').addEventListener('click', refresh);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && state.nextAt && Date.now() > state.nextAt) refresh(); });
+  window.addEventListener('resize', () => { renderEvo(); renderPollsChart(); });
+
+  Promise.all([
+    fetch('uf1t.json').then(r => r.json()).then(j => { state.uf1t = j; }).catch(() => {}),
+    fetch('polls.json').then(r => r.json()).then(j => { state.polls = j; renderPollsTables(); renderPollsChart(); renderAggVs(null); }).catch(() => { $('polls-chart').innerHTML = '<div class="empty">Não foi possível carregar polls.json.</div>'; })
+  ]).then(refresh);
+  state.tick = setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
